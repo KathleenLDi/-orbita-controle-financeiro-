@@ -743,4 +743,62 @@ exigirLogin((user)=>{
   },(err)=>console.warn('[nuvem] convites:',err));
 
   notifyDue(false);
+  nuvem.tourJaVisto().then(v=>{ if(!v) setTimeout(iniciarTour,900); });
 });
+/* =============== Tour de boas-vindas =============== */
+const TOUR_PASSOS=[
+ {alvo:null,titulo:'Bem-vinda ao Órbita! 🪐',titulo2:'Bem-vindo(a) ao Órbita! 🪐',texto:'Seu controle financeiro na nuvem. Vou te mostrar rapidinho como tudo funciona — leva menos de um minuto.'},
+ {alvo:'nav',titulo:'As quatro áreas',texto:'Dashboard é o resumo do mês. Em Gastos você lança contas e marca as pagas. Cartões mostra a fatura de cada cartão, mês a mês. Rendas guarda salários e outras entradas.'},
+ {alvo:'.month-nav',titulo:'Navegue pelos meses',texto:'Use as setas para ver meses passados ou futuros — parcelas e gastos fixos já aparecem nos meses certos, com contador (ex.: 3/12). O botão "hoje" volta ao mês atual.'},
+ {alvo:'#btnNotif',titulo:'Lembretes de vencimento',texto:'Ative para receber avisos do navegador quando uma conta estiver perto de vencer ou atrasada.'},
+ {alvo:'#spaceSelect',titulo:'Seus espaços',texto:'O espaço 🔒 pessoal é só seu — ninguém mais vê. Você também pode participar de espaços 👥 compartilhados e alternar entre eles aqui.'},
+ {alvo:'#btnSpaces',titulo:'Compartilhe com alguém',texto:'Aqui você cria um espaço compartilhado e convida outra pessoa pelo e-mail. Tudo que um lançar aparece na tela do outro na hora, em tempo real.'},
+ {alvo:null,titulo:'Prontinho! ✨',texto:'Dica para começar: cadastre suas Rendas, depois os Cartões, e então lance os Gastos. Bom controle!'}
+];
+let tourIdx=0,tourEls=null;
+function iniciarTour(){ if(tourEls) return; tourIdx=0;
+  const dim=document.createElement('div'); dim.className='tour-dim';
+  const card=document.createElement('div'); card.className='tour-card';
+  document.body.append(dim,card);
+  tourEls={dim,card,destaque:null};
+  mostrarPasso();
+}
+function mostrarPasso(){
+  const p=TOUR_PASSOS[tourIdx], {card}=tourEls;
+  if(tourEls.destaque) tourEls.destaque.classList.remove('tour-destaque');
+  const alvo=p.alvo?document.querySelector(p.alvo):null;
+  if(alvo){ alvo.classList.add('tour-destaque'); tourEls.destaque=alvo; }
+  else tourEls.destaque=null;
+  const ultimo=tourIdx===TOUR_PASSOS.length-1;
+  card.innerHTML=`
+    <div class="t-titulo">${p.titulo}</div>
+    <div class="t-texto">${p.texto}</div>
+    <div class="t-dots">${TOUR_PASSOS.map((_,i)=>`<i class="${i===tourIdx?'on':''}"></i>`).join('')}</div>
+    <div class="t-acoes">
+      <button type="button" class="btn ghost small" id="tPular">Pular</button>
+      <span style="flex:1"></span>
+      ${tourIdx>0?'<button type="button" class="btn small" id="tVoltar">Anterior</button>':''}
+      <button type="button" class="btn primary small" id="tProx">${ultimo?'Começar a usar':'Próximo'}</button>
+    </div>`;
+  posicionarCard(alvo);
+  card.querySelector('#tPular').onclick=encerrarTour;
+  const v=card.querySelector('#tVoltar'); if(v) v.onclick=()=>{tourIdx--;mostrarPasso();};
+  card.querySelector('#tProx').onclick=()=>{ ultimo?encerrarTour():(tourIdx++,mostrarPasso()); };
+}
+function posicionarCard(alvo){
+  const {card}=tourEls;
+  card.style.cssText='';
+  if(!alvo){ card.style.left='50%';card.style.top='50%';card.style.transform='translate(-50%,-50%)'; return; }
+  if(window.innerWidth<640){ card.style.left='50%';card.style.bottom='16px';card.style.transform='translateX(-50%)'; return; }
+  const r=alvo.getBoundingClientRect(), cw=340;
+  card.style.left=Math.min(Math.max(12,r.left),window.innerWidth-cw-12)+'px';
+  let top=r.bottom+12;
+  if(top+230>window.innerHeight) top=Math.max(12,r.top-242);
+  card.style.top=top+'px';
+}
+function encerrarTour(){
+  if(!tourEls) return;
+  if(tourEls.destaque) tourEls.destaque.classList.remove('tour-destaque');
+  tourEls.dim.remove(); tourEls.card.remove(); tourEls=null;
+  nuvem.marcarTourVisto();
+}

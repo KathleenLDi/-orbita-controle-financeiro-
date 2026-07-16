@@ -108,13 +108,14 @@ nav button.active{color:var(--text);border-bottom-color:var(--accent)}
   border:1px solid var(--border);border-radius:var(--radius);
   padding:20px;margin-bottom:14px;
 }
-.ribbon .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
-@media(max-width:760px){.ribbon .stats{grid-template-columns:repeat(2,1fr)}}
+.ribbon .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:16px}
+@media(max-width:900px){.ribbon .stats{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.ribbon .stats{grid-template-columns:repeat(2,1fr)}}
 .stat .k{font-size:11.5px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px}
 .stat .v{font-family:var(--mono);font-size:21px;font-weight:600;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
 .stat .v.income{color:var(--income)}
 .stat .v.expense{color:var(--expense)}
-.stat .v.sub{font-size:12px;color:var(--muted);font-weight:400;display:block;margin-top:2px}
+.stat .v .sub{font-size:12px;color:var(--muted);font-weight:400;display:block;margin-top:2px;font-family:var(--body)}
 .flow-bar{height:10px;border-radius:6px;background:var(--surface2);overflow:hidden;display:flex;border:1px solid var(--border)}
 .flow-bar .in{background:linear-gradient(90deg,#2BC08D,var(--income))}
 .flow-bar .out{background:linear-gradient(90deg,var(--expense),#E0505F)}
@@ -277,3 +278,14 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
 /* Centraliza os modais (o reset *{margin:0} lá de cima anulava
    a margem automática que o navegador usa para centralizar) */
 dialog{margin:auto;max-height:90vh;overflow:auto}
+
+/* ---------- Tour de boas-vindas ---------- */
+.tour-dim{position:fixed;inset:0;background:rgba(5,8,15,.74);z-index:1000;backdrop-filter:blur(1px)}
+.tour-destaque{position:relative;z-index:1001;box-shadow:0 0 0 3px var(--accent),0 0 26px rgba(124,140,255,.35);border-radius:12px;background:var(--bg)}
+.tour-card{position:fixed;z-index:1002;width:min(340px,calc(100vw - 24px));background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px}
+.t-titulo{font-family:var(--display);font-weight:600;font-size:16px;margin-bottom:6px}
+.t-texto{font-size:13.5px;color:var(--muted);line-height:1.55}
+.t-dots{display:flex;gap:5px;margin:14px 0 12px}
+.t-dots i{width:6px;height:6px;border-radius:50%;background:var(--border)}
+.t-dots i.on{background:var(--accent)}
+.t-acoes{display:flex;gap:8px;align-items:center}
