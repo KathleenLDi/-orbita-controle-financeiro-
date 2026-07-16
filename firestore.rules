@@ -3,8 +3,6 @@ rules_version = '2';
 // =============================================================
 // Órbita · Regras de segurança do Firestore
 // -------------------------------------------------------------
-// Publicar em: Console Firebase → Firestore Database → Regras
-//
 // Garantias:
 //  - Nada é acessível sem login.
 //  - Cada usuário só lê/edita espaços dos quais é membro.
