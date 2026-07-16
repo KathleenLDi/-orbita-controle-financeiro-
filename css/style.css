@@ -279,8 +279,10 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
    a margem automática que o navegador usa para centralizar) */
 dialog{margin:auto;max-height:90vh;overflow:auto}
 /* ---------- Tour de boas-vindas ---------- */
-.tour-dim{position:fixed;inset:0;background:rgba(5,8,15,.74);z-index:1000;backdrop-filter:blur(1px)}
-.tour-destaque{position:relative;z-index:1001;box-shadow:0 0 0 3px var(--accent),0 0 26px rgba(124,140,255,.35);border-radius:12px;background:var(--bg)}
+.tour-block{position:fixed;inset:0;z-index:999}
+.tour-spot{position:fixed;z-index:1000;pointer-events:none;border-radius:12px;transition:all .25s ease;
+  box-shadow:0 0 0 3px var(--accent),0 0 26px rgba(124,140,255,.45),0 0 0 9999px rgba(5,8,15,.78)}
+.tour-spot.cheio{border-radius:0;box-shadow:0 0 0 9999px rgba(5,8,15,.78)}
 .tour-card{position:fixed;z-index:1002;width:min(340px,calc(100vw - 24px));background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px}
 .t-titulo{font-family:var(--display);font-weight:600;font-size:16px;margin-bottom:6px}
 .t-texto{font-size:13.5px;color:var(--muted);line-height:1.55}

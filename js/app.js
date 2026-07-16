@@ -539,7 +539,11 @@ function selecionarEspaco(id){
   state={incomes:[],cards:[],expenses:[]};
   localStorage.setItem('orbita-espaco',id);
   render();
-
+  ligarOuvintes(id,0);
+}
+function ligarOuvintes(id,tentativa){
+  if(id!==espacoAtivo) return; // trocou de espaço no meio do caminho
+  pararDados.forEach(p=>p()); pararDados=[];
   const chegou={};
   const aoChegar=(nome)=>(lista)=>{
     const primeira=!chegou[nome];
@@ -550,7 +554,16 @@ function selecionarEspaco(id){
     render();
     if(prontos===3) oferecerMigracao();
   };
-  const aoErrar=(nome)=>(err)=>mostrarErroNuvem(nome,err);
+  let retryMarcado=false;
+  const aoErrar=(nome)=>(err)=>{
+    // Corrida do primeiro acesso: o espaço acabou de ser criado e o
+    // servidor ainda não confirmou. Tenta de novo em vez de desistir.
+    if(err&&err.code==='permission-denied'&&tentativa<4){
+      if(!retryMarcado){ retryMarcado=true; setTimeout(()=>ligarOuvintes(id,tentativa+1),1000+600*tentativa); }
+      return;
+    }
+    mostrarErroNuvem(nome,err);
+  };
   pararDados.push(
     nuvem.ouvir(id,'expenses',aoChegar('expenses'),aoErrar('gastos')),
     nuvem.ouvir(id,'cards',aoChegar('cards'),aoErrar('cartões')),
@@ -747,9 +760,9 @@ exigirLogin((user)=>{
 });
 /* =============== Tour de boas-vindas =============== */
 const TOUR_PASSOS=[
- {alvo:null,titulo:'Bem-vinda ao Órbita! 🪐',titulo2:'Bem-vindo(a) ao Órbita! 🪐',texto:'Seu controle financeiro na nuvem. Vou te mostrar rapidinho como tudo funciona — leva menos de um minuto.'},
+ {alvo:null,titulo:'Bem-vinda ao Órbita! 🪐',titulo2:'Bem-vindo(a) ao Órbita! 🪐',texto:'Seu controle financeiro na nuvem. Vou te mostrar rapidinho como tudo funciona.'},
  {alvo:'nav',titulo:'As quatro áreas',texto:'Dashboard é o resumo do mês. Em Gastos você lança contas e marca as pagas. Cartões mostra a fatura de cada cartão, mês a mês. Rendas guarda salários e outras entradas.'},
- {alvo:'.month-nav',titulo:'Navegue pelos meses',texto:'Use as setas para ver meses passados ou futuros — parcelas e gastos fixos já aparecem nos meses certos, com contador (ex.: 3/12). O botão "hoje" volta ao mês atual.'},
+ {alvo:'.month-nav',titulo:'Navegue pelos meses',texto:'Use as setas para ver meses passados ou futuros. arcelas e gastos fixos já aparecem nos meses certos, com contador (ex.: 3/12). O botão "hoje" volta ao mês atual.'},
  {alvo:'#btnNotif',titulo:'Lembretes de vencimento',texto:'Ative para receber avisos do navegador quando uma conta estiver perto de vencer ou atrasada.'},
  {alvo:'#spaceSelect',titulo:'Seus espaços',texto:'O espaço 🔒 pessoal é só seu — ninguém mais vê. Você também pode participar de espaços 👥 compartilhados e alternar entre eles aqui.'},
  {alvo:'#btnSpaces',titulo:'Compartilhe com alguém',texto:'Aqui você cria um espaço compartilhado e convida outra pessoa pelo e-mail. Tudo que um lançar aparece na tela do outro na hora, em tempo real.'},
@@ -757,18 +770,28 @@ const TOUR_PASSOS=[
 ];
 let tourIdx=0,tourEls=null;
 function iniciarTour(){ if(tourEls) return; tourIdx=0;
-  const dim=document.createElement('div'); dim.className='tour-dim';
+  const block=document.createElement('div'); block.className='tour-block';
+  const spot=document.createElement('div'); spot.className='tour-spot';
   const card=document.createElement('div'); card.className='tour-card';
-  document.body.append(dim,card);
-  tourEls={dim,card,destaque:null};
+  document.body.append(block,spot,card);
+  tourEls={block,spot,card};
   mostrarPasso();
 }
 function mostrarPasso(){
-  const p=TOUR_PASSOS[tourIdx], {card}=tourEls;
-  if(tourEls.destaque) tourEls.destaque.classList.remove('tour-destaque');
+  const p=TOUR_PASSOS[tourIdx], {card,spot}=tourEls;
   const alvo=p.alvo?document.querySelector(p.alvo):null;
-  if(alvo){ alvo.classList.add('tour-destaque'); tourEls.destaque=alvo; }
-  else tourEls.destaque=null;
+  if(alvo){
+    alvo.scrollIntoView({block:'nearest'});
+    const r=alvo.getBoundingClientRect(), pad=6;
+    spot.classList.remove('cheio');
+    spot.style.left=(r.left-pad)+'px';
+    spot.style.top=(r.top-pad)+'px';
+    spot.style.width=(r.width+pad*2)+'px';
+    spot.style.height=(r.height+pad*2)+'px';
+  }else{
+    spot.classList.add('cheio');
+    spot.style.left='50%';spot.style.top='50%';spot.style.width='0';spot.style.height='0';
+  }
   const ultimo=tourIdx===TOUR_PASSOS.length-1;
   card.innerHTML=`
     <div class="t-titulo">${p.titulo}</div>
@@ -792,13 +815,84 @@ function posicionarCard(alvo){
   if(window.innerWidth<640){ card.style.left='50%';card.style.bottom='16px';card.style.transform='translateX(-50%)'; return; }
   const r=alvo.getBoundingClientRect(), cw=340;
   card.style.left=Math.min(Math.max(12,r.left),window.innerWidth-cw-12)+'px';
-  let top=r.bottom+12;
-  if(top+230>window.innerHeight) top=Math.max(12,r.top-242);
+  let top=r.bottom+16;
+  if(top+230>window.innerHeight) top=Math.max(12,r.top-246);
   card.style.top=top+'px';
 }
 function encerrarTour(){
   if(!tourEls) return;
-  if(tourEls.destaque) tourEls.destaque.classList.remove('tour-destaque');
-  tourEls.dim.remove(); tourEls.card.remove(); tourEls=null;
+  tourEls.block.remove(); tourEls.spot.remove(); tourEls.card.remove(); tourEls=null;
   nuvem.marcarTourVisto();
+}
+/* =============== Resumo em PDF =============== */
+document.getElementById('btnPdf').onclick=gerarResumo;
+function gerarResumo(){
+  const esp=espacoAtual(); if(!esp) return;
+  const occs=monthExpenses(viewYM);
+  const inc=monthIncomeTotal(), exp=occs.reduce((s,o)=>s+o.valor,0);
+  const pagos=occs.filter(o=>o.pago);
+  const pct=inc?Math.round(exp/inc*100):0;
+  const byCat={}; occs.forEach(o=>{byCat[o.exp.categoria]=(byCat[o.exp.categoria]||0)+o.valor});
+  const cats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+
+  const linhas=occs.map(o=>`<tr>
+    <td>${o.pago?'✓':''}</td>
+    <td>${esc(o.exp.desc)}${o.idx?` <small>(${o.idx}/${o.total})</small>`:''}${o.exp.tipo==='fixo'?' <small>(fixo)</small>':''}</td>
+    <td>${esc(o.exp.categoria)}</td>
+    <td>${esc(metodoLabel(o.exp.metodo))}</td>
+    <td class="c">dia ${pad(o.dia)}</td>
+    <td class="r">${BRL(o.valor)}</td></tr>`).join('');
+
+  const rendas=state.incomes.map(i=>`<tr><td>${esc(i.nome)}</td><td>${esc(i.pessoa)}</td><td class="c">dia ${pad(i.dia)}</td><td class="r">${BRL(i.valor)}</td></tr>`).join('');
+
+  const faturas=state.cards.map(c=>{
+    const f=occs.filter(o=>o.exp.metodo==='card:'+c.id);
+    if(!f.length) return '';
+    return `<tr><td>${esc(c.nome)}</td><td class="c">venc. dia ${pad(c.venc)}</td><td class="c">${f.length} lançamento${f.length>1?'s':''}</td><td class="r">${BRL(f.reduce((s,o)=>s+o.valor,0))}</td></tr>`;
+  }).join('');
+
+  const catLinhas=cats.map(([c,v])=>`<tr><td>${esc(c)}</td><td class="c">${exp?Math.round(v/exp*100):0}%</td><td class="r">${BRL(v)}</td></tr>`).join('');
+
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Órbita · Resumo de ${ymLabel(viewYM)}</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;color:#1d2333;margin:36px;font-size:13px}
+    h1{font-size:20px;margin:0}
+    .sub{color:#6b7390;font-size:12px;margin:2px 0 20px}
+    .cards{display:flex;gap:10px;margin-bottom:22px}
+    .card{flex:1;border:1px solid #dde1ee;border-radius:10px;padding:10px 12px}
+    .card .k{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#6b7390}
+    .card .v{font-size:16px;font-weight:bold;margin-top:2px}
+    .verde{color:#0e9f6e}.vermelho{color:#e02440}
+    h2{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:#6b7390;margin:22px 0 8px;border-bottom:1px solid #dde1ee;padding-bottom:4px}
+    table{width:100%;border-collapse:collapse}
+    td,th{padding:6px 8px;border-bottom:1px solid #eef0f7;text-align:left;vertical-align:top}
+    th{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:#6b7390}
+    .r{text-align:right;white-space:nowrap}.c{text-align:center;white-space:nowrap}
+    tfoot td{font-weight:bold;border-top:2px solid #dde1ee}
+    small{color:#6b7390}
+    footer{margin-top:28px;font-size:10.5px;color:#a0a6bd;text-align:center}
+    @media print{body{margin:12mm}}
+  </style></head><body>
+  <h1>🪐 Órbita — Resumo financeiro</h1>
+  <div class="sub">${ymLabel(viewYM)} · espaço "${esc(esp.nome)}"${esp.tipo==='compartilhado'?' (compartilhado)':''}</div>
+  <div class="cards">
+    <div class="card"><div class="k">Entradas</div><div class="v verde">${BRL(inc)}</div></div>
+    <div class="card"><div class="k">Gastos</div><div class="v vermelho">${BRL(exp)}</div></div>
+    <div class="card"><div class="k">Saldo do mês</div><div class="v ${inc-exp>=0?'verde':'vermelho'}">${BRL(inc-exp)}</div></div>
+    <div class="card"><div class="k">Contas pagas</div><div class="v">${pagos.length}/${occs.length}</div></div>
+    <div class="card"><div class="k">Renda comprometida</div><div class="v">${pct}%</div></div>
+  </div>
+  ${occs.length?`<h2>Gastos do mês</h2><table>
+    <thead><tr><th></th><th>Descrição</th><th>Categoria</th><th>Pagamento</th><th class="c">Vencimento</th><th class="r">Valor</th></tr></thead>
+    <tbody>${linhas}</tbody>
+    <tfoot><tr><td colspan="5">Total</td><td class="r">${BRL(exp)}</td></tr></tfoot></table>`:''}
+  ${cats.length?`<h2>Por categoria</h2><table><tbody>${catLinhas}</tbody></table>`:''}
+  ${faturas?`<h2>Faturas dos cartões</h2><table><tbody>${faturas}</tbody></table>`:''}
+  ${rendas?`<h2>Rendas</h2><table><tbody>${rendas}</tbody></table>`:''}
+  <footer>Gerado pelo Órbita em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</footer>
+  <script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script>
+  </body></html>`);
+  w.document.close();
 }

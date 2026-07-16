@@ -31,11 +31,11 @@ function limpo(obj) {
 }
 
 /* =================== ESPAÇOS =================== */
-
 export function ouvirMeusEspacos(callback, onErro) {
   const q = query(collection(db, "espacos"),
     where("membros", "array-contains", meuUid()));
   return onSnapshot(q, (snap) => {
+    if (snap.metadata.hasPendingWrites) return; // espera o servidor confirmar
     callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
   }, (err) => { if (onErro) onErro(err); else console.error(err); });
 }
@@ -191,4 +191,16 @@ export async function substituirTudo(espacoId, estado) {
   }
   await batch.commit(); // limite de 500 operações por lote
   return total;
+}
+
+/* ============ TOUR DE BOAS-VINDAS ============ */
+export async function tourJaVisto() {
+  try {
+    const s = await getDoc(doc(db, "usuarios", meuUid()));
+    return !!(s.exists() && s.data().tourVisto);
+  } catch { return localStorage.getItem("orbita-tour") === "1"; }
+}
+export async function marcarTourVisto() {
+  localStorage.setItem("orbita-tour", "1");
+  try { await setDoc(doc(db, "usuarios", meuUid()), { tourVisto: true }, { merge: true }); } catch {}
 }
