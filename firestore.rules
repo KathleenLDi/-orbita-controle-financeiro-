@@ -1,0 +1,104 @@
+rules_version = '2';
+
+// =============================================================
+// Órbita · Regras de segurança do Firestore
+// -------------------------------------------------------------
+// Publicar em: Console Firebase → Firestore Database → Regras
+//
+// Garantias:
+//  - Nada é acessível sem login.
+//  - Cada usuário só lê/edita espaços dos quais é membro.
+//  - Convidado (por e-mail) pode aceitar (adicionar SÓ o próprio
+//    uid) ou recusar (remover SÓ o próprio e-mail) — nada além.
+//  - Só o dono convida e exclui o espaço.
+// =============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logado() { return request.auth != null; }
+    function meuUid() { return request.auth.uid; }
+    function meuEmail() { return request.auth.token.email.lower(); }
+
+    // -------------------- Perfis --------------------
+    match /usuarios/{userId} {
+      allow read, write: if logado() && meuUid() == userId;
+    }
+
+    // -------------------- Espaços --------------------
+    match /espacos/{espacoId} {
+
+      function souMembro() {
+        return logado() && meuUid() in resource.data.membros;
+      }
+      function souDono() {
+        return logado() && meuUid() == resource.data.dono;
+      }
+      function fuiConvidado() {
+        return logado() && meuEmail() in resource.data.convites;
+      }
+
+      // Aceitar convite: só pode adicionar o PRÓPRIO uid em
+      // membros e mexer em convites.
+      function aceitandoConvite() {
+        return fuiConvidado()
+          && request.resource.data.diff(resource.data)
+               .affectedKeys().hasOnly(['membros', 'convites'])
+          && meuUid() in request.resource.data.membros
+          && request.resource.data.membros.hasAll(resource.data.membros)
+          && request.resource.data.membros.size()
+               == resource.data.membros.size() + 1;
+      }
+
+      // Recusar convite: só pode remover o PRÓPRIO e-mail.
+      function recusandoConvite() {
+        return fuiConvidado()
+          && request.resource.data.diff(resource.data)
+               .affectedKeys().hasOnly(['convites'])
+          && !(meuEmail() in request.resource.data.convites);
+      }
+
+      // Sair do espaço: só pode remover o PRÓPRIO uid.
+      function saindoDoEspaco() {
+        return souMembro()
+          && request.resource.data.diff(resource.data)
+               .affectedKeys().hasOnly(['membros'])
+          && !(meuUid() in request.resource.data.membros)
+          && resource.data.membros.hasAll(request.resource.data.membros)
+          && resource.data.membros.size()
+               == request.resource.data.membros.size() + 1;
+      }
+
+      // Membros leem; convidados leem (para ver o nome do espaço).
+      allow get, list: if souMembro() || fuiConvidado();
+
+      // Criar: o criador é o dono e o único membro inicial.
+      allow create: if logado()
+        && request.resource.data.dono == meuUid()
+        && request.resource.data.membros == [meuUid()];
+
+      allow update: if souDono()
+        || aceitandoConvite()
+        || recusandoConvite()
+        || saindoDoEspaco();
+
+      allow delete: if souDono();
+
+      // ---------- Dados financeiros do espaço ----------
+      // Cobre expenses, cards e incomes.
+      match /{colecao}/{docId} {
+        function membroDoEspaco() {
+          return logado() && meuUid() in
+            get(/databases/$(database)/documents/espacos/$(espacoId))
+              .data.membros;
+        }
+        allow read, create, update, delete: if membroDoEspaco();
+      }
+    }
+
+    // Qualquer outro caminho: negado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

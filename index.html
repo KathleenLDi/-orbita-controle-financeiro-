@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Órbita · Controle Financeiro</title>
+<meta name="description" content="Controle financeiro do casal: rendas, gastos, cartões, parcelas e vencimentos.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237C8CFF'/%3E%3Cstop offset='1' stop-color='%233ADFA5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg transform='rotate(-28 22 22)'%3E%3Cellipse cx='22' cy='22' rx='17' ry='10' fill='none' stroke='%23566095' stroke-width='2'/%3E%3Ccircle cx='39' cy='22' r='3.4' fill='%233ADFA5'/%3E%3Ccircle cx='5' cy='22' r='3.4' fill='%237C8CFF'/%3E%3C/g%3E%3Ccircle cx='22' cy='22' r='6.5' fill='url(%23g)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">
+      <svg class="logo-mark" viewBox="0 0 44 44" width="38" height="38" role="img" aria-label="Logo Órbita">
+        <defs>
+          <linearGradient id="lgCore" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#7C8CFF"/><stop offset="1" stop-color="#3ADFA5"/>
+          </linearGradient>
+        </defs>
+        <g transform="rotate(-28 22 22)">
+          <ellipse cx="22" cy="22" rx="17" ry="10" fill="none" stroke="#566095" stroke-width="2"/>
+          <circle cx="39" cy="22" r="3.4" fill="#3ADFA5"/>
+          <circle cx="5" cy="22" r="3.4" fill="#7C8CFF"/>
+        </g>
+        <circle cx="22" cy="22" r="6.5" fill="url(#lgCore)"/>
+      </svg>
+      <h1>Órbita <span>seu controle financeiro</span></h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn small" id="btnNotif" title="Ativar lembretes de vencimento">🔔 Lembretes</button>
+      <button class="btn small" id="btnExport" title="Baixar backup dos dados">⬇ Backup</button>
+      <button class="btn small" id="btnImport" title="Restaurar backup">⬆ Restaurar</button>
+      <input type="file" id="importFile" accept=".json" hidden>
+      <select id="spaceSelect" class="space-select" title="Trocar de espaço"></select>
+      <button class="btn small" id="btnSpaces" title="Compartilhar e gerenciar espaços">👥 Espaços</button>
+      <button class="btn small ghost" id="btnSair" title="Sair da conta">Sair</button>
+    </div>
+  </header>
+
+  <div id="cloudMsgs"></div>
+
+  <nav>
+    <button data-tab="dash" class="active">Dashboard</button>
+    <button data-tab="gastos">Gastos</button>
+    <button data-tab="cartoes">Cartões</button>
+    <button data-tab="rendas">Rendas</button>
+  </nav>
+
+  <div class="month-nav">
+    <button class="icon-btn" id="prevM" aria-label="Mês anterior">‹</button>
+    <div class="label" id="monthLabel"></div>
+    <button class="icon-btn" id="nextM" aria-label="Próximo mês">›</button>
+    <button class="today-btn" id="todayM">hoje</button>
+  </div>
+
+  <main id="view"></main>
+
+  <footer>Seus dados ficam salvos na nuvem, protegidos pela sua conta. Espaços compartilhados sincronizam em tempo real entre os membros.</footer>
+</div>
+
+<!-- ===== Modais ===== -->
+<dialog id="dlgExpense">
+  <form method="dialog" id="formExpense">
+    <h3 id="expTitle">Novo gasto</h3>
+    <div class="field">
+      <label for="eDesc">Descrição</label>
+      <input id="eDesc" required placeholder="Ex.: Mercado, Internet, Geladeira…">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="eValor">Valor total (R$)</label>
+        <input id="eValor" type="number" step="0.01" min="0.01" required placeholder="0,00">
+      </div>
+      <div class="field">
+        <label for="eCat">Categoria</label>
+        <select id="eCat"></select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="eTipo">Tipo</label>
+        <select id="eTipo">
+          <option value="unico">Único</option>
+          <option value="parcelado">Parcelado</option>
+          <option value="fixo">Fixo mensal</option>
+        </select>
+      </div>
+      <div class="field" id="fParcelas" hidden>
+        <label for="eParcelas">Nº de parcelas</label>
+        <input id="eParcelas" type="number" min="2" max="120" value="12">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="eMetodo">Forma de pagamento</label>
+        <select id="eMetodo"></select>
+      </div>
+      <div class="field">
+        <label for="eMes">Mês inicial</label>
+        <input id="eMes" type="month" required>
+      </div>
+    </div>
+    <div class="field" id="fDia">
+      <label for="eDia">Dia de vencimento</label>
+      <input id="eDia" type="number" min="1" max="31" value="10">
+      <div class="hint">Para gastos no cartão, vale o vencimento da fatura.</div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn ghost" data-close>Cancelar</button>
+      <button type="submit" class="btn primary">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgCard">
+  <form method="dialog" id="formCard">
+    <h3 id="cardTitle">Novo cartão</h3>
+    <div class="field">
+      <label for="cNome">Nome do cartão</label>
+      <input id="cNome" required placeholder="Ex.: Nubank, Inter, Visa Gold…">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="cVenc">Dia do vencimento</label>
+        <input id="cVenc" type="number" min="1" max="31" required value="10">
+      </div>
+      <div class="field">
+        <label for="cLimite">Limite (opcional)</label>
+        <input id="cLimite" type="number" step="0.01" min="0" placeholder="0,00">
+      </div>
+    </div>
+    <div class="field">
+      <label>Cor</label>
+      <div class="color-opts" id="cColors"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn ghost" data-close>Cancelar</button>
+      <button type="submit" class="btn primary">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgIncome">
+  <form method="dialog" id="formIncome">
+    <h3 id="incTitle">Nova renda</h3>
+    <div class="field">
+      <label for="iNome">Descrição</label>
+      <input id="iNome" required placeholder="Ex.: Salário, Freela, Vale…">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="iPessoa">De quem</label>
+        <input id="iPessoa" required placeholder="Ex.: Eu / Parceiro(a)" list="pessoas">
+        <datalist id="pessoas"><option value="Eu"><option value="Parceiro(a)"></datalist>
+      </div>
+      <div class="field">
+        <label for="iDia">Dia do recebimento</label>
+        <input id="iDia" type="number" min="1" max="31" value="5">
+      </div>
+    </div>
+    <div class="field">
+      <label for="iValor">Valor mensal (R$)</label>
+      <input id="iValor" type="number" step="0.01" min="0.01" required placeholder="0,00">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn ghost" data-close>Cancelar</button>
+      <button type="submit" class="btn primary">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgSpace">
+  <form method="dialog">
+    <h3>Espaços</h3>
+    <div id="spaceInfo"><!-- preenchido pelo app.js --></div>
+    <hr class="sep">
+    <div class="field">
+      <label for="sNome">Criar espaço compartilhado</label>
+      <div class="row2">
+        <input id="sNome" placeholder="Ex.: Nosso apê 💛" maxlength="40">
+        <button type="button" class="btn primary" id="btnCreateSpace">Criar</button>
+      </div>
+      <div class="hint">Depois de criar, convide alguém pelo e-mail. Vocês verão e editarão os mesmos dados, em tempo real.</div>
+    </div>
+    <div class="who" id="whoami"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn ghost" data-close>Fechar</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
