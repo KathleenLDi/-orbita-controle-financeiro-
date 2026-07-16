@@ -48,31 +48,24 @@ export function ouvirMeusConvites(callback, onErro) {
   }, (err) => { if (onErro) onErro(err); else console.error(err); });
 }
 
-export async function criarEspacoCompartilhado(nome) {
-  const ref = await addDoc(collection(db, "espacos"), {
-    nome,
-    tipo: "compartilhado",
-    dono: meuUid(),
-    membros: [meuUid()],
-    convites: [],
-    criadoEm: serverTimestamp(),
-  });
-  return ref.id;
+function minhaInfo() {
+  return { nome: auth.currentUser?.displayName || "", email: meuEmail() };
 }
 
-/* Espaço pessoal — usado no cadastro e como autocura quando
-   uma conta é detectada sem nenhum espaço. */
-export async function criarEspacoPessoal() {
+export async function criarEspaco(nome, tipo) {
   const ref = await addDoc(collection(db, "espacos"), {
-    nome: "Meu espaço",
-    tipo: "pessoal",
+    nome,
+    tipo, // 'pessoal' ou 'compartilhado'
     dono: meuUid(),
     membros: [meuUid()],
+    membrosInfo: { [meuUid()]: minhaInfo() },
     convites: [],
     criadoEm: serverTimestamp(),
   });
   return ref.id;
 }
+export const criarEspacoCompartilhado = (nome) => criarEspaco(nome, "compartilhado");
+export const criarEspacoPessoal = () => criarEspaco("Meu espaço", "pessoal");
 
 export async function convidarPorEmail(espacoId, email) {
   await updateDoc(doc(db, "espacos", espacoId), {
@@ -83,6 +76,7 @@ export async function convidarPorEmail(espacoId, email) {
 export async function aceitarConvite(espacoId) {
   await updateDoc(doc(db, "espacos", espacoId), {
     membros: arrayUnion(meuUid()),
+    [`membrosInfo.${meuUid()}`]: minhaInfo(),
     convites: arrayRemove(meuEmail()),
   });
 }

@@ -490,7 +490,8 @@ document.querySelectorAll('dialog [data-close]').forEach(b=>b.onclick=()=>b.clos
 const btnNotif=document.getElementById('btnNotif');
 function updateNotifBtn(){
   if(!('Notification' in window)){ btnNotif.hidden=true; return; }
-  btnNotif.textContent=Notification.permission==='granted'?'🔔 Lembretes ativos':'🔔 Lembretes';
+  const t=document.getElementById('notifTxt');
+  if(t) t.textContent=Notification.permission==='granted'?'Lembretes ativos':'Lembretes';
 }
 btnNotif.onclick=async()=>{
   if(!('Notification' in window)) return;
@@ -527,7 +528,7 @@ function renderEspacoBar(){
     (a.tipo==='pessoal'?0:1)-(b.tipo==='pessoal'?0:1)||
     (a.criadoEm?.seconds||0)-(b.criadoEm?.seconds||0));
   spaceSelect.innerHTML=ordenados.map(e=>
-    `<option value="${e.id}" ${e.id===espacoAtivo?'selected':''}>${e.tipo==='pessoal'?'🔒':'👥'} ${esc(e.nome)}</option>`
+    `<option value="${e.id}" ${e.id===espacoAtivo?'selected':''}>${e.tipo==='pessoal'?'●':'◒'} ${esc(e.nome)}</option>`
   ).join('');
 }
 spaceSelect.addEventListener('change',()=>selecionarEspaco(spaceSelect.value));
@@ -646,7 +647,7 @@ document.getElementById('btnCreateSpace').onclick=async()=>{
   if(!nome) return;
   document.getElementById('sNome').value='';
   try{
-    const id=await nuvem.criarEspacoCompartilhado(nome);
+const id=await nuvem.criarEspaco(nome,document.getElementById('sTipo').value);
     selecionarEspaco(id);
     dlgS.close();
   }catch(err){ falha(err); }
@@ -654,57 +655,62 @@ document.getElementById('btnCreateSpace').onclick=async()=>{
 function renderDlgSpace(){
   document.getElementById('whoami').textContent=
     usuario?`Conectado como ${usuario.displayName||''} · ${usuario.email}`:'';
-  const esp=espacoAtual();
   const box=document.getElementById('spaceInfo');
-  if(!esp){ box.innerHTML='<div class="hint">Carregando…</div>'; return; }
-  const compart=esp.tipo==='compartilhado';
-  box.innerHTML=`
-    <div class="space-row">
-      <span class="chip">${esp.tipo==='pessoal'?'🔒 pessoal':'👥 compartilhado'}</span>
-      <b>${esc(esp.nome)}</b>
-      <span class="chip">${esp.membros.length} membro${esp.membros.length>1?'s':''}</span>
-      ${esp.convites?.length?`<span class="chip">✉ ${esp.convites.length} convite${esp.convites.length>1?'s':''} pendente${esp.convites.length>1?'s':''}</span>`:''}
-    </div>
-    ${compart&&souDono()?`
-      <div class="field" style="margin-top:12px">
-        <label for="inviteEmail">Convidar pelo e-mail (a pessoa precisa ter conta no Órbita)</label>
-        <div class="invite-row">
-          <input id="inviteEmail" type="email" placeholder="email@exemplo.com">
-          <button type="button" class="btn primary small" id="btnInvite">Convidar</button>
-        </div>
-      </div>`:''}
-    ${compart&&souDono()?`<button type="button" class="btn small danger" id="btnDelSpace" style="margin-top:8px">Excluir este espaço</button>`:''}
-    ${compart&&!souDono()?`<button type="button" class="btn small danger" id="btnLeaveSpace" style="margin-top:8px">Sair deste espaço</button>`:''}
-    ${!compart?'<div class="hint" style="margin-top:8px">Seu espaço pessoal é só seu. Para dividir as finanças com alguém, crie um espaço compartilhado abaixo.</div>':''}
-  `;
+  if(!espacos.length){ box.innerHTML='<div class="hint">Carregando…</div>'; return; }
+  const ordenados=[...espacos].sort((a,b)=>
+    (a.tipo==='pessoal'?0:1)-(b.tipo==='pessoal'?0:1)||
+    (a.criadoEm?.seconds||0)-(b.criadoEm?.seconds||0));
+  box.innerHTML=ordenados.map(esp=>{
+    const ativo=esp.id===espacoAtivo;
+    const compart=esp.tipo==='compartilhado';
+    const dono=esp.dono===usuario?.uid;
+    const nomes=compart?esp.membros.map(u=>{
+      if(u===usuario?.uid) return 'você';
+      const i=esp.membrosInfo&&esp.membrosInfo[u];
+      return i?(i.nome||i.email):'1 membro';
+    }).join(', '):'';
+    return `<div class="space-item ${ativo?'ativo':''}">
+      <div class="space-line">
+        <b>${esp.tipo==='pessoal'?'●':'◒'} ${esc(esp.nome)}</b>
+        <span class="chip">${compart?'compartilhado':'pessoal'}</span>
+        ${ativo?'<span class="chip em-uso">em uso</span>':`<button type="button" class="btn small" data-abrir="${esp.id}">Abrir</button>`}
+      </div>
+      ${compart?`<div class="space-sub">com ${esc(nomes)}${esp.convites?.length?` · ${esp.convites.length} convite pendente`:''}</div>`:''}
+      ${ativo?`
+        ${compart&&dono?`<div class="row2" style="margin-top:8px"><input id="inviteEmail" type="email" placeholder="Convidar por e-mail"><button type="button" class="btn primary small" id="btnInvite">Convidar</button></div>`:''}
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+          ${dono?`<button type="button" class="btn small danger" id="btnDelSpace">${compart?'Excluir espaço':'Apagar e recomeçar do zero'}</button>`:''}
+          ${compart&&!dono?`<button type="button" class="btn small danger" id="btnLeaveSpace">Sair do espaço</button>`:''}
+        </div>`:''}
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-abrir]').forEach(b=>b.onclick=()=>{
+    selecionarEspaco(b.dataset.abrir); renderEspacoBar(); renderDlgSpace();
+  });
+  const esp=espacoAtual();
   const btnInvite=document.getElementById('btnInvite');
   if(btnInvite) btnInvite.onclick=async()=>{
     const email=document.getElementById('inviteEmail').value.trim();
     if(!email) return;
-    try{
-      await nuvem.convidarPorEmail(espacoAtivo,email);
+    try{ await nuvem.convidarPorEmail(espacoAtivo,email);
       alert(`Convite enviado! Assim que ${email} entrar no Órbita, verá o convite para aceitar.`);
       renderDlgSpace();
     }catch(err){ falha(err); }
   };
   const btnDel=document.getElementById('btnDelSpace');
   if(btnDel) btnDel.onclick=async()=>{
-    if(confirm(`Excluir o espaço "${esp.nome}" e TODOS os dados dele, para todos os membros? Não dá para desfazer.`)){
-      try{
-        await nuvem.excluirEspaco(espacoAtivo);
-        dlgS.close();
-        espacoAtivo=null; // o ouvinte de espaços seleciona o pessoal
-      }catch(err){ falha(err); }
+    if(confirm(esp.tipo==='compartilhado'
+      ?`Excluir o espaço "${esp.nome}" e TODOS os dados dele, para todos os membros? Não dá para desfazer.`
+      :`Apagar TODOS os dados de "${esp.nome}" e começar do zero? Não dá para desfazer.`)){
+      try{ await nuvem.excluirEspaco(espacoAtivo); dlgS.close(); espacoAtivo=null; }
+      catch(err){ falha(err); }
     }
   };
   const btnLeave=document.getElementById('btnLeaveSpace');
   if(btnLeave) btnLeave.onclick=async()=>{
     if(confirm(`Sair do espaço "${esp.nome}"? Você deixará de ver os dados dele.`)){
-      try{
-        await nuvem.sairDoEspaco(espacoAtivo);
-        dlgS.close();
-        espacoAtivo=null;
-      }catch(err){ falha(err); }
+      try{ await nuvem.sairDoEspaco(espacoAtivo); dlgS.close(); espacoAtivo=null; }
+      catch(err){ falha(err); }
     }
   };
 }

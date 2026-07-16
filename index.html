@@ -31,10 +31,10 @@
       <h1>Órbita <span>seu controle financeiro</span></h1>
     </div>
     <div class="header-actions">
-      <button class="btn small" id="btnNotif" title="Ativar lembretes de vencimento">🔔 Lembretes</button>
+     <button class="btn small" id="btnNotif" title="Ativar lembretes de vencimento"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span id="notifTxt">Lembretes</span></button>
       <select id="spaceSelect" class="space-select" title="Trocar de espaço"></select>
       <button class="btn small" id="btnPdf" title="Gerar resumo do mês em PDF"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>Resumo</button>
-      <button class="btn small" id="btnSpaces" title="Compartilhar e gerenciar espaços">👥 Espaços</button>
+      <button class="btn small" id="btnSpaces" title="Compartilhar e gerenciar espaços"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="12" rx="9" ry="4.5" transform="rotate(-25 12 12)"/><circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"/><circle cx="19.5" cy="8.5" r="1.6" fill="currentColor" stroke="none"/></svg>Espaços</button>
       <button class="btn small ghost" id="btnSair" title="Sair da conta">Sair</button>
     </div>
   </header>
@@ -179,7 +179,8 @@
     <div class="field">
       <label for="sNome">Criar espaço compartilhado</label>
       <div class="row2">
-        <input id="sNome" placeholder="Ex.: Nosso apê 💛" maxlength="40">
+        <input id="sNome" placeholder="Nome do espaço" maxlength="40">
+        <select id="sTipo" class="space-select"><option value="compartilhado">Compartilhado</option><option value="pessoal">Pessoal</option></select>
         <button type="button" class="btn primary" id="btnCreateSpace">Criar</button>
       </div>
       <div class="hint">Depois de criar, convide alguém pelo e-mail. Vocês verão e editarão os mesmos dados, em tempo real.</div>
