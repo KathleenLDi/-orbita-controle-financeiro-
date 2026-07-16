@@ -151,7 +151,8 @@ function statsRibbon(){
       <div class="stat"><div class="k">Entradas</div><div class="v income">${BRL(inc)}</div></div>
       <div class="stat"><div class="k">Gastos</div><div class="v expense">${BRL(exp)}</div></div>
       <div class="stat"><div class="k">Saldo do mês</div><div class="v" style="color:${saldo>=0?'var(--income)':'var(--expense)'}">${BRL(saldo)}</div></div>
-      <div class="stat"><div class="k">Contas pagas</div><div class="v">${pagos}<span style="color:var(--muted);font-size:14px">/${occs.length}</span><span class="sub">${pct}% da renda comprometida</span></div></div>
+      <div class="stat"><div class="k">Contas pagas</div><div class="v">${pagos}<span style="color:var(--muted);font-size:14px">/${occs.length}</span></div></div>
+<div class="stat"><div class="k">Renda comprometida</div><div class="v" style="color:${pct>100?'var(--expense)':pct>70?'var(--warn)':'var(--text)'}">${pct}%</div></div>
     </div>
     <div class="flow-bar" role="img" aria-label="Proporção entre entradas e gastos">
       <div class="in" style="width:${pIn}%"></div><div class="out" style="width:${pOut}%"></div>
