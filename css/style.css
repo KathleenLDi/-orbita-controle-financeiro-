@@ -278,7 +278,6 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
 /* Centraliza os modais (o reset *{margin:0} lá de cima anulava
    a margem automática que o navegador usa para centralizar) */
 dialog{margin:auto;max-height:90vh;overflow:auto}
-
 /* ---------- Tour de boas-vindas ---------- */
 .tour-dim{position:fixed;inset:0;background:rgba(5,8,15,.74);z-index:1000;backdrop-filter:blur(1px)}
 .tour-destaque{position:relative;z-index:1001;box-shadow:0 0 0 3px var(--accent),0 0 26px rgba(124,140,255,.35);border-radius:12px;background:var(--bg)}

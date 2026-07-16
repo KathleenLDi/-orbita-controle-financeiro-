@@ -13,10 +13,9 @@
    (uid() do app.js) — isso preserva as referências
    metodo:'card:<id>' entre gastos e cartões.
    ========================================================== */
-getDocs, getDoc
 import { db, auth } from "./firebase-config.js";
 import {
-  collection, doc, addDoc, setDoc, updateDoc, deleteDoc, getDocs,
+  collection, doc, addDoc, setDoc, updateDoc, deleteDoc, getDocs,getDoc,
   query, where, onSnapshot, serverTimestamp,
   arrayUnion, arrayRemove, writeBatch,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -192,15 +191,4 @@ export async function substituirTudo(espacoId, estado) {
   }
   await batch.commit(); // limite de 500 operações por lote
   return total;
-}
-/* ============ TOUR DE BOAS-VINDAS ============ */
-export async function tourJaVisto() {
-  try {
-    const s = await getDoc(doc(db, "usuarios", meuUid()));
-    return !!(s.exists() && s.data().tourVisto);
-  } catch { return localStorage.getItem("orbita-tour") === "1"; }
-}
-export async function marcarTourVisto() {
-  localStorage.setItem("orbita-tour", "1");
-  try { await setDoc(doc(db, "usuarios", meuUid()), { tourVisto: true }, { merge: true }); } catch {}
 }
