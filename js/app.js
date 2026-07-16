@@ -485,34 +485,6 @@ document.getElementById('formIncome').addEventListener('submit',()=>{
 /* fechar modais no cancelar */
 document.querySelectorAll('dialog [data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
 
-/* =============== Backup =============== */
-document.getElementById('btnExport').onclick=()=>{
-  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`orbita-backup-${ymNow()}.json`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-};
-document.getElementById('btnImport').onclick=()=>document.getElementById('importFile').click();
-document.getElementById('importFile').addEventListener('change',e=>{
-  const f=e.target.files[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload=async()=>{
-    try{
-      const d=JSON.parse(r.result);
-      if(!d||!Array.isArray(d.expenses)||!Array.isArray(d.incomes)||!Array.isArray(d.cards)) throw 0;
-      const esp=espacoAtual();
-      if(confirm(`Substituir TODOS os dados do espaço "${esp?esp.nome:''}" pelo backup? Isso vale para todos os membros.`)){
-        try{ await nuvem.substituirTudo(espacoAtivo,d); }
-        catch(err){ falha(err); }
-      }
-    }catch{ alert('Arquivo de backup inválido.'); }
-  };
-  r.readAsText(f);
-  e.target.value='';
-});
-
 /* =============== Notificações =============== */
 const btnNotif=document.getElementById('btnNotif');
 function updateNotifBtn(){
