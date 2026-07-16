@@ -368,7 +368,7 @@ function renderRendas(){
         </div>
       </div>
       ${state.incomes.length?`<div class="list">${html}</div>`
-        :'<div class="empty"><div class="big">◈</div>Cadastre suas rendas para começar — só as suas ou as do casal.</div>'}
+        :'<div class="empty"><div class="big">◈</div>Cadastre suas rendas para começar.</div>'}
     </div>`;
   document.getElementById('addInc').onclick=()=>openIncome();
   view.querySelectorAll('[data-iedit]').forEach(b=>b.onclick=()=>openIncome(b.dataset.iedit));
